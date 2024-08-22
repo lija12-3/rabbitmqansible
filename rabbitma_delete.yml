@@ -1,0 +1,47 @@
+---
+- name: Remove Erlang and RabbitMQ from Debian
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Stop RabbitMQ server
+      systemd:
+        name: rabbitmq-server
+        state: stopped
+        enabled: no
+      # Stop RabbitMQ service and disable it from starting on boot
+
+    - name: Remove RabbitMQ server
+      apt:
+        name: rabbitmq-server
+        state: absent
+      # Uninstall RabbitMQ server
+
+    - name: Remove Erlang
+      apt:
+        name:
+          - erlang
+          - erlang-nox
+        state: absent
+      # Uninstall Erlang and its minimal graphical components
+
+    - name: Remove dependencies
+      apt:
+        name:
+          - software-properties-common
+          - curl
+          - gnupg2
+          - apt-transport-https
+        state: absent
+        autoremove: yes
+      # Uninstall dependencies and autoremove any unused packages
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      # Update the APT package cache to reflect the removal of packages
+
+    - name: Clean up residual configuration files
+      apt:
+        autoclean: yes
+      # Clean up residual configuration files and package cache
