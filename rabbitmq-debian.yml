@@ -53,14 +53,10 @@
         msg: "RabbitMQ status: {{ rabbitmq_status.stdout }}"
 
     - name: Get RabbitMQ version
-      command: rabbitmqctl status
-      register: rabbitmq_status_output
+      command: rabbitmqctl version
+      register: rabbitmq_version_output
       changed_when: False
-
-    - name: Extract RabbitMQ version
-      set_fact:
-        rabbitmq_version: "{{ rabbitmq_status_output.stdout | regex_search('\"rabbitmq\",\"([^\"]+)\"', '\\1') }}"
 
     - name: Display RabbitMQ version
       debug:
-        msg: "RabbitMQ version: {{ rabbitmq_version }}"
+        msg: "RabbitMQ version: {{ rabbitmq_version_output.stdout }}"
