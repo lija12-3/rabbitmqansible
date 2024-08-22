@@ -15,9 +15,9 @@
           - curl
         state: present
 
-    - name: Install Erlang repository
+    - name: Install Erlang repository (using 'focal' as a compatible release)
       apt_repository:
-        repo: "deb https://packages.erlang-solutions.com/ubuntu {{ ansible_distribution_release }} contrib"
+        repo: "deb https://packages.erlang-solutions.com/ubuntu focal contrib"
         state: present
         update_cache: yes
 
@@ -31,7 +31,7 @@
 
     - name: Add RabbitMQ apt repository
       apt_repository:
-        repo: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/debian {{ ansible_distribution_release }} main"
+        repo: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/debian buster main"
         state: present
         update_cache: yes
 
