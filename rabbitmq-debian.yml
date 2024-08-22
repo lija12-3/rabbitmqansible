@@ -1,0 +1,42 @@
+---
+- name: Install RabbitMQ on Debian-based systems
+  hosts: debian_servers
+  become: yes
+
+  tasks:
+    - name: Update and upgrade the APT packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install Erlang (dependency for RabbitMQ)
+      apt:
+        name: erlang
+        state: present
+
+    - name: Add RabbitMQ APT repository GPG key
+      apt_key:
+        url: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
+        state: present
+
+    - name: Add RabbitMQ repository to sources list
+      apt_repository:
+        repo: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/debian buster main"
+        state: present
+        filename: "rabbitmq"
+
+    - name: Update APT cache after adding RabbitMQ repository
+      apt:
+        update_cache: yes
+
+    - name: Install RabbitMQ server
+      apt:
+        name: rabbitmq-server
+        state: present
+
+    - name: Ensure RabbitMQ server is started and enabled
+      service:
+        name: rabbitmq-server
+        state: started
+        enabled: yes
