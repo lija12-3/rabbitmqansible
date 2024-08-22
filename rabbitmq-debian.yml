@@ -1,66 +1,53 @@
 ---
-- name: Install Erlang and RabbitMQ dependencies
-  hosts: all
+- name: Install Erlang and RabbitMQ on Debian
+  hosts: debian_servers
   become: yes
 
   tasks:
     - name: Install dependencies
       apt:
         name:
+          - software-properties-common
           - curl
-          - gnupg
+          - gnupg2
           - apt-transport-https
         state: present
         update_cache: yes
-
-    - name: Add Team RabbitMQ's main signing key
-      command: >
-        curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" |
-        gpg --dearmor |
-        tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
-
-    - name: Add Community mirror of Cloudsmith: modern Erlang repository key
-      command: >
-        curl -1sLf https://ppa1.novemberain.com/gpg.E495BB49CC4BBE5B.key |
-        gpg --dearmor |
-        tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
-
-    - name: Add Erlang Solutions repository GPG key
-      command: >
-        curl -fsSL https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc |
-        gpg --dearmor |
-        tee /usr/share/keyrings/erlang_solutions.gpg > /dev/null
-
-    - name: Add RabbitMQ and Erlang Solutions repositories
-      copy:
-        content: |
-          deb [signed-by=/usr/share/keyrings/erlang_solutions.gpg] https://packages.erlang-solutions.com/ubuntu focal contrib
-          deb [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu focal main
-          deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu focal main
-        dest: /etc/apt/sources.list.d/rabbitmq.list
 
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install Erlang packages
+    - name: Install Erlang
       apt:
         name:
-          - erlang-base
-          - erlang-asn1
-          - erlang-crypto
-          - erlang-eldap
-          - erlang-ftp
-          - erlang-inets
-          - erlang-mnesia
-          - erlang-os-mon
-          - erlang-parsetools
-          - erlang-public-key
-          - erlang-runtime-tools
-          - erlang-snmp
-          - erlang-ssl
-          - erlang-syntax-tools
-          - erlang-tftp
-          - erlang-tools
-          - erlang-xmerl
+          - erlang
+          - erlang-nox
         state: present
+
+    - name: Show Erlang version
+      command: erl -version
+      register: erl_version
+
+    - name: Display Erlang version
+      debug:
+        msg: "Erlang version: {{ erl_version.stdout }}"
+
+    - name: Install RabbitMQ server
+      apt:
+        name: rabbitmq-server
+        state: present
+
+    - name: Start RabbitMQ server
+      systemd:
+        name: rabbitmq-server
+        state: started
+        enabled: yes
+
+    - name: Check RabbitMQ server status
+      command: systemctl status rabbitmq-server
+      register: rabbitmq_status
+
+    - name: Display RabbitMQ server status
+      debug:
+        msg: "RabbitMQ status: {{ rabbitmq_status.stdout }}"
