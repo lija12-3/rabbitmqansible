@@ -1,42 +1,49 @@
 ---
-- name: Install RabbitMQ on Debian-based systems
-  hosts: debian_servers
+- name: Install RabbitMQ
+  hosts: all
   become: yes
-
   tasks:
-    - name: Update and upgrade the APT packages
+    - name: Update APT package index
       apt:
         update_cache: yes
-        upgrade: dist
-        cache_valid_time: 3600
+        upgrade: yes
 
-    - name: Install Erlang (dependency for RabbitMQ)
+    - name: Install required dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - curl
+        state: present
+
+    - name: Install Erlang repository
+      apt_repository:
+        repo: "deb https://packages.erlang-solutions.com/ubuntu $(lsb_release -cs) contrib"
+        state: present
+        update_cache: yes
+
+    - name: Import Erlang GPG key
+      apt_key:
+        url: https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc
+        state: present
+
+    - name: Install Erlang
       apt:
         name: erlang
         state: present
 
-    - name: Add RabbitMQ APT repository GPG key
+    - name: Add RabbitMQ apt repository
+      apt_repository:
+        repo: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/debian buster main"
+        state: present
+        update_cache: yes
+
+    - name: Import RabbitMQ GPG key
       apt_key:
         url: https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
         state: present
 
-    - name: Add RabbitMQ repository to sources list
-      apt_repository:
-        repo: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/debian buster main"
-        state: present
-        filename: "rabbitmq"
-
-    - name: Update APT cache after adding RabbitMQ repository
+    - name: Install RabbitMQ Server
       apt:
+        name: rabbitmq-server
+        state: present
         update_cache: yes
-
-    - name: Install RabbitMQ server
-      apt:
-        name: rabbitmq-server
-        state: present
-
-    - name: Ensure RabbitMQ server is started and enabled
-      service:
-        name: rabbitmq-server
-        state: started
-        enabled: yes
