@@ -1,6 +1,6 @@
 ---
 - name: Install Erlang and RabbitMQ on Debian
-  hosts: debian_servers
+  hosts: all
   become: yes
 
   tasks:
