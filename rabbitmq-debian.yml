@@ -25,8 +25,8 @@
           - erlang-nox
         state: present
 
-    - name: Show Erlang version
-      command: erl -version
+    - name: Check Erlang version
+      command: "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell"
       register: erl_version
 
     - name: Display Erlang version
