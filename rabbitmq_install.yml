@@ -1,65 +1,47 @@
+---
 - name: Install RabbitMQ on Debian 12
-  hosts: debian_servers
+  hosts: all
   become: yes
+
   tasks:
-    - name: Install required packages
+    - name: Update apt repository cache
+      apt:
+        update_cache: yes
+
+    - name: Install necessary packages
       apt:
         name:
           - curl
           - gnupg
           - apt-transport-https
         state: present
-        update_cache: yes
-      # This task installs the necessary packages (curl, gnupg, apt-transport-https) required for adding repositories and handling GPG keys.
 
-    - name: Add Team RabbitMQ's main signing key
+    - name: Add RabbitMQ's main signing key
       shell: |
-        curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
-      args:
-        creates: /usr/share/keyrings/com.rabbitmq.team.gpg
-      # Downloads and adds the Team RabbitMQ signing key to the system keyring, which is necessary for verifying RabbitMQ packages.
+        curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | gpg --dearmor | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
 
-    - name: Add Cloudsmith Erlang repository key
+    - name: Add Erlang repository signing key
       shell: |
-        curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
-      args:
-        creates: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
-      # Downloads and adds the Cloudsmith Erlang repository GPG key, which is used to verify Erlang packages.
+        curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
 
-    - name: Add Cloudsmith RabbitMQ repository key
+    - name: Add RabbitMQ repository signing key
       shell: |
-        curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
-      args:
-        creates: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
-      # Downloads and adds the Cloudsmith RabbitMQ repository GPG key, which is used to verify RabbitMQ server packages.
+        curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
 
-    - name: Add RabbitMQ APT repositories
+    - name: Add RabbitMQ and Erlang repositories
       copy:
-        dest: /etc/apt/sources.list.d/rabbitmq.list
         content: |
-          ## Provides modern Erlang/OTP releases
           deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
           deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-
-          # another mirror for redundancy
-          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-          deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-
-          ## Provides RabbitMQ
           deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
           deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
+        dest: /etc/apt/sources.list.d/rabbitmq.list
 
-          # another mirror for redundancy
-          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-          deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-      # This task adds the RabbitMQ and Erlang APT repositories to the system sources list to allow installation of RabbitMQ and its dependencies.
-
-    - name: Update APT cache
+    - name: Update apt cache after adding repositories
       apt:
         update_cache: yes
-      # This task updates the APT package index to include the newly added RabbitMQ and Erlang repositories.
 
-    - name: Install Erlang packages
+    - name: Install Erlang and RabbitMQ
       apt:
         name:
           - erlang-base
@@ -79,36 +61,6 @@
           - erlang-tftp
           - erlang-tools
           - erlang-xmerl
+          - rabbitmq-server
         state: present
-      # This task installs the required Erlang packages for RabbitMQ to operate properly.
-
-    - name: Install RabbitMQ server
-      apt:
-        name: rabbitmq-server
-        state: present
-        install_recommends: yes
-      # This task installs the RabbitMQ server along with any recommended packages to ensure all necessary dependencies are installed.
-
-    - name: Get Erlang version
-      shell: |
-        erl -eval 'erlang:system_info(version).' -s init stop -s init stop
-      register: erlang_version
-      changed_when: false
-      # This task retrieves the installed Erlang version using the 'erl' command and stores it in the 'erlang_version' variable.
-
-    - name: Print Erlang version
-      debug:
-        msg: "Erlang version: {{ erlang_version.stdout }}"
-      # This task outputs the installed Erlang version to the Ansible playbook logs.
-
-    - name: Get RabbitMQ version
-      shell: |
-        rabbitmqctl version
-      register: rabbitmq_version
-      changed_when: false
-      # This task retrieves the installed RabbitMQ version using the 'rabbitmqctl version' command and stores it in the 'rabbitmq_version' variable.
-
-    - name: Print RabbitMQ version
-      debug:
-        msg: "RabbitMQ version: {{ rabbitmq_version.stdout }}"
-      # This task outputs the installed RabbitMQ version to the Ansible playbook logs.
+        update_cache: yes
