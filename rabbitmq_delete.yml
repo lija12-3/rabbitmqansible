@@ -1,6 +1,6 @@
 ---
 - name: Remove RabbitMQ and Erlang from Debian 12
-  hosts: all
+  hosts: debian_servers
   become: yes
   tasks:
     - name: Remove RabbitMQ server
