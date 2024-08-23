@@ -1,4 +1,4 @@
-- name: Remove Erlang and RabbitMQ on Debian
+- name: Remove Erlang and RabbitMQ from Debian
   hosts: debian_servers
   become: yes
 
@@ -7,58 +7,57 @@
       systemd:
         name: rabbitmq-server
         state: stopped
-        enabled: no
-      # Stops the RabbitMQ service and disables it from starting on boot
+      # Stop the RabbitMQ service before removal
 
-    - name: Uninstall RabbitMQ server
+    - name: Remove RabbitMQ server
       apt:
         name: rabbitmq-server
         state: absent
-      # Removes the RabbitMQ server package
+      # Remove RabbitMQ server package
 
-    - name: Uninstall Erlang
+    - name: Remove Erlang
       apt:
         name:
           - erlang
           - erlang-nox
         state: absent
-      # Removes Erlang and associated packages
+      # Remove Erlang packages
 
-    - name: Remove RabbitMQ GPG keyring file
+    - name: Remove RabbitMQ APT repository file
+      file:
+        path: /etc/apt/sources.list.d/rabbitmq.list
+        state: absent
+      # Remove the RabbitMQ APT repository configuration file
+
+    - name: Remove RabbitMQ GPG key
       file:
         path: /usr/share/keyrings/com.rabbitmq.team.gpg
         state: absent
-      # Removes the RabbitMQ GPG keyring file
+      # Remove the RabbitMQ GPG key file
 
-    - name: Remove dependencies
-      apt:
-        name:
-          - software-properties-common
-          - curl
-          - gnupg2
-          - apt-transport-https
-        state: absent
-      # Removes dependencies that were installed
-
-    - name: Remove RabbitMQ repository
-      apt_repository:
-        repo: "deb https://dl.bintray.com/rabbitmq/debian bionic main"
-        state: absent
-      # Removes the RabbitMQ repository
-
-    - name: Remove Erlang repository
-      apt_repository:
-        repo: "deb https://dl.bintray.com/rabbitmq-erlang/debian bionic erlang"
-        state: absent
-      # Removes the Erlang repository
-
-    - name: Remove RabbitMQ repository signing key
-      apt_key:
-        url: https://packages.rabbitmq.com/rabbitmq-release-signing-key.asc
-        state: absent
-      # Removes the RabbitMQ repository signing key
-
-    - name: Update apt cache after removal
+    - name: Update apt cache
       apt:
         update_cache: yes
-      # Updates the package list to reflect the removals
+      # Update the APT package cache to reflect the removal of the repositories
+
+    - name: Verify RabbitMQ removal
+      command: dpkg -l | grep rabbitmq
+      register: rabbitmq_check
+      ignore_errors: yes
+      # Check if RabbitMQ is still installed
+
+    - name: Display RabbitMQ removal status
+      debug:
+        msg: "RabbitMQ removal status: {{ rabbitmq_check.stdout }}"
+      # Display status to verify if RabbitMQ was successfully removed
+
+    - name: Verify Erlang removal
+      command: dpkg -l | grep erlang
+      register: erlang_check
+      ignore_errors: yes
+      # Check if Erlang is still installed
+
+    - name: Display Erlang removal status
+      debug:
+        msg: "Erlang removal status: {{ erlang_check.stdout }}"
+      # Display status to verify if Erlang was successfully removed
