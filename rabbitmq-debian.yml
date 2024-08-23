@@ -44,7 +44,7 @@
         name: rabbitmq-server
         state: present
 
-    - name: Ensure RabbitMQ server is started and enabled
+    - name: Ensure RabbitMQ service is started and enabled
       service:
         name: rabbitmq-server
         state: started
