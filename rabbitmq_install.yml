@@ -1,6 +1,6 @@
 ---
 - name: Install RabbitMQ on Debian 12
-  hosts: all
+  hosts: debian_servers
   become: yes
   tasks:
     - name: Install required packages
