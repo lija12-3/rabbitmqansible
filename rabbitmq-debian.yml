@@ -15,8 +15,25 @@
       # Install necessary dependencies for adding new repositories and installing packages
 
     - name: Add RabbitMQ GPG key
-      command: "curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc | sudo gpg --dearmor -o /usr/share/keyrings/com.rabbitmq.team.gpg"
+      command: >
+        curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" |
+        sudo gpg --dearmor |
+        sudo tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
       # Adds the RabbitMQ GPG key for verifying packages
+
+    - name: Add RabbitMQ APT repository
+      block:
+        - name: Add RabbitMQ Erlang repository
+          command: >
+            echo "deb [signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/deb/debian bookworm main" |
+            sudo tee /etc/apt/sources.list.d/rabbitmq.list
+          # Add RabbitMQ Erlang repository
+
+        - name: Add RabbitMQ server repository
+          command: >
+            echo "deb [signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/debian bookworm main" |
+            sudo tee -a /etc/apt/sources.list.d/rabbitmq.list
+          # Append RabbitMQ server repository to the sources list
 
     - name: Update apt cache
       apt:
