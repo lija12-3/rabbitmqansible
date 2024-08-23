@@ -1,6 +1,5 @@
----
 - name: Remove Erlang and RabbitMQ from Debian
-  hosts: all
+  hosts: debian_servers
   become: yes
 
   tasks:
@@ -8,40 +7,58 @@
       systemd:
         name: rabbitmq-server
         state: stopped
-        enabled: no
-      # Stop RabbitMQ service and disable it from starting on boot
+      # Stops the RabbitMQ service
 
-    - name: Remove RabbitMQ server
+    - name: Disable RabbitMQ server from starting on boot
+      systemd:
+        name: rabbitmq-server
+        enabled: no
+      # Disables RabbitMQ from starting automatically on system boot
+
+    - name: Uninstall RabbitMQ server
       apt:
         name: rabbitmq-server
         state: absent
-      # Uninstall RabbitMQ server
+      # Removes the RabbitMQ server package
 
-    - name: Remove Erlang
+    - name: Uninstall Erlang
       apt:
         name:
           - erlang
           - erlang-nox
         state: absent
-      # Uninstall Erlang and its minimal graphical components
+      # Removes Erlang and associated packages
 
-    - name: Remove dependencies
-      apt:
-        name:
-          - software-properties-common
-          - curl
-          - gnupg2
-          - apt-transport-https
+    - name: Remove RabbitMQ repository
+      apt_repository:
+        repo: "deb https://dl.bintray.com/rabbitmq/debian bionic main"
         state: absent
-        autoremove: yes
-      # Uninstall dependencies and autoremove any unused packages
+      # Removes the RabbitMQ repository
 
-    - name: Update apt cache
+    - name: Remove Erlang repository
+      apt_repository:
+        repo: "deb https://dl.bintray.com/rabbitmq-erlang/debian bionic erlang"
+        state: absent
+      # Removes the Erlang repository
+
+    - name: Remove RabbitMQ repository signing key
+      apt_key:
+        url: https://packages.rabbitmq.com/rabbitmq-release-signing-key.asc
+        state: absent
+      # Removes the RabbitMQ repository signing key
+
+    - name: Purge dependencies
+      apt:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - software-properties-common
+        - curl
+        - gnupg2
+        - apt-transport-https
+      # Purges dependencies that were installed
+
+    - name: Update apt cache after removal
       apt:
         update_cache: yes
-      # Update the APT package cache to reflect the removal of packages
-
-    - name: Clean up residual configuration files
-      apt:
-        autoclean: yes
-      # Clean up residual configuration files and package cache
+      # Updates the package list to reflect the removals
