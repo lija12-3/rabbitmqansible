@@ -32,7 +32,7 @@
 
     - name: Add RabbitMQ APT repository
       apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/ buster main"
+        repo: "deb [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/ bookworm main"
         state: present
 
     - name: Install RabbitMQ
