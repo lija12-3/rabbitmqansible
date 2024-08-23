@@ -1,95 +1,36 @@
-- name: Install Erlang and RabbitMQ on Debian
+---
+- name: Install RabbitMQ Server on Debian
   hosts: debian_servers
   become: yes
-
   tasks:
-    - name: Install initial dependencies
-      apt:
-        name:
-          - curl
-          - gnupg
-          - apt-transport-https
-        state: present
-        update_cache: yes
-      # Install necessary dependencies for adding new repositories and installing packages
-
-    - name: Add RabbitMQ GPG keys
-      block:
-        - name: Add RabbitMQ main signing key
-          shell: |
-            curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
-          # Add the RabbitMQ GPG key for verifying packages
-
-        - name: Add RabbitMQ Erlang repository signing key
-          shell: |
-            curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
-          # Add the RabbitMQ Erlang repository signing key
-
-        - name: Add RabbitMQ server repository signing key
-          shell: |
-            curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
-          # Add the RabbitMQ server repository signing key
-
-    - name: Add RabbitMQ APT repositories
-      block:
-        - name: Add RabbitMQ Erlang repository
-          shell: |
-            sudo tee /etc/apt/sources.list.d/rabbitmq.list <<EOF
-            ## Provides modern Erlang/OTP releases
-            ##
-            deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-
-            # another mirror for redundancy
-            deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-            EOF
-          # Add RabbitMQ Erlang repository to sources list
-
-        - name: Add RabbitMQ server repository
-          shell: |
-            sudo tee -a /etc/apt/sources.list.d/rabbitmq.list <<EOF
-            ## Provides RabbitMQ
-            ##
-            deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-
-            # another mirror for redundancy
-            deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-            EOF
-          # Append RabbitMQ server repository to sources list
-
-    - name: Update apt cache
+    - name: Update package index
       apt:
         update_cache: yes
-      # Update the APT package cache to include new repository information
 
-    - name: Install Erlang packages
-      apt:
-        name:
-          - erlang-base
-          - erlang-asn1
-          - erlang-crypto
-          - erlang-eldap
-          - erlang-ftp
-          - erlang-inets
-          - erlang-mnesia
-          - erlang-os-mon
-          - erlang-parsetools
-          - erlang-public-key
-          - erlang-runtime-tools
-          - erlang-snmp
-          - erlang-ssl
-          - erlang-syntax-tools
-          - erlang-tftp
-          - erlang-tools
-          - erlang-xmerl
-        state: present
-      # Install Erlang and its related packages
+    - name: Download RabbitMQ server .deb package
+      get_url:
+        url: "https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.13.6/rabbitmq-server_3.13.6-1_all.deb"
+        dest: "/tmp/rabbitmq-server_3.13.6-1_all.deb"
 
     - name: Install RabbitMQ server
       apt:
-        name: rabbitmq-server
+        deb: "/tmp/rabbitmq-server_3.13.6-1_all.deb"
+
+    - name: Resolve dependencies
+      apt:
+        name: "{{ ansible_facts.packages | selectattr('name', 'search', '^rabbitmq-server$') | map(attribute='name') | first }}"
         state: present
-      # Install RabbitMQ server and its dependencies
+
+    - name: Clean up RabbitMQ server .deb package
+      file:
+        path: "/tmp/rabbitmq-server_3.13.6-1_all.deb"
+        state: absent
+
+    - name: Check RabbitMQ server status
+      command: rabbitmqctl status
+      register: rabbitmq_status
+      ignore_errors: yes
+
+    - name: Print RabbitMQ server status
+      debug:
+        msg: "{{ rabbitmq_status.stdout }}"
