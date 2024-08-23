@@ -18,7 +18,7 @@
         dest: /tmp/rabbitmq-team-key.asc
 
     - name: Import RabbitMQ Team signing key
-      command: "gpg --dearmor /tmp/rabbitmq-team-key.asc | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null"
+      command: "gpg --dearmor /tmp/rabbitmq-team-key.asc -o /usr/share/keyrings/com.rabbitmq.team.gpg"
       args:
         creates: /usr/share/keyrings/com.rabbitmq.team.gpg
 
@@ -28,7 +28,7 @@
         dest: /tmp/rabbitmq-erlang-key.asc
 
     - name: Import Erlang repository key
-      command: "gpg --dearmor /tmp/rabbitmq-erlang-key.asc | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null"
+      command: "gpg --dearmor /tmp/rabbitmq-erlang-key.asc -o /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg"
       args:
         creates: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
 
@@ -38,7 +38,7 @@
         dest: /tmp/rabbitmq-server-key.asc
 
     - name: Import RabbitMQ repository key
-      command: "gpg --dearmor /tmp/rabbitmq-server-key.asc | tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null"
+      command: "gpg --dearmor /tmp/rabbitmq-server-key.asc -o /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg"
       args:
         creates: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
 
