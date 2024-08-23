@@ -1,6 +1,6 @@
 ---
 - name: Install and Verify RabbitMQ
-  hosts: all
+  hosts: debian_servers
   become: yes
   tasks:
     - name: Install required packages
