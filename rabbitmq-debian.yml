@@ -1,4 +1,3 @@
----
 - name: Install RabbitMQ Server on Debian
   hosts: debian_servers
   become: yes
@@ -6,6 +5,17 @@
     - name: Update package index
       apt:
         update_cache: yes
+
+    - name: Add Erlang Solutions repository
+      apt_repository:
+        repo: "deb https://packages.erlang-solutions.com/debian $(lsb_release -cs) contrib"
+        state: present
+        filename: "erlang"
+
+    - name: Install Erlang
+      apt:
+        name: erlang
+        state: present
 
     - name: Download RabbitMQ server .deb package
       get_url:
@@ -16,15 +26,16 @@
       apt:
         deb: "/tmp/rabbitmq-server_3.13.6-1_all.deb"
 
-    - name: Resolve dependencies
-      apt:
-        name: "{{ ansible_facts.packages | selectattr('name', 'search', '^rabbitmq-server$') | map(attribute='name') | first }}"
-        state: present
-
     - name: Clean up RabbitMQ server .deb package
       file:
         path: "/tmp/rabbitmq-server_3.13.6-1_all.deb"
         state: absent
+
+    - name: Ensure RabbitMQ server is started and enabled
+      service:
+        name: rabbitmq-server
+        state: started
+        enabled: yes
 
     - name: Check RabbitMQ server status
       command: rabbitmqctl status
@@ -33,4 +44,4 @@
 
     - name: Print RabbitMQ server status
       debug:
-        msg: "{{ rabbitmq_status.stdout }}"
+        msg: "{{ rabbitmq_status.stdout | default('RabbitMQ status check failed.') }}"
