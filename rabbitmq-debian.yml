@@ -16,49 +16,31 @@
       get_url:
         url: "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA"
         dest: /tmp/rabbitmq-team-key.asc
-      register: rabbitmq_team_key
 
     - name: Import RabbitMQ Team signing key
-      command: "gpg --dearmor /tmp/rabbitmq-team-key.asc"
+      command: "gpg --dearmor /tmp/rabbitmq-team-key.asc | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null"
       args:
         creates: /usr/share/keyrings/com.rabbitmq.team.gpg
-
-    - name: Move RabbitMQ Team key to keyrings
-      command: "mv /tmp/rabbitmq-team-key.asc.gpg /usr/share/keyrings/com.rabbitmq.team.gpg"
-      args:
-        removes: /usr/share/keyrings/com.rabbitmq.team.gpg
 
     - name: Add Cloudsmith Erlang repository key
       get_url:
         url: "https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key"
         dest: /tmp/rabbitmq-erlang-key.asc
-      register: rabbitmq_erlang_key
 
     - name: Import Erlang repository key
-      command: "gpg --dearmor /tmp/rabbitmq-erlang-key.asc"
+      command: "gpg --dearmor /tmp/rabbitmq-erlang-key.asc | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null"
       args:
         creates: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
-
-    - name: Move Erlang key to keyrings
-      command: "mv /tmp/rabbitmq-erlang-key.asc.gpg /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg"
-      args:
-        removes: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
 
     - name: Add RabbitMQ repository key
       get_url:
         url: "https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key"
         dest: /tmp/rabbitmq-server-key.asc
-      register: rabbitmq_server_key
 
     - name: Import RabbitMQ repository key
-      command: "gpg --dearmor /tmp/rabbitmq-server-key.asc"
+      command: "gpg --dearmor /tmp/rabbitmq-server-key.asc | tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null"
       args:
         creates: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
-
-    - name: Move RabbitMQ key to keyrings
-      command: "mv /tmp/rabbitmq-server-key.asc.gpg /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg"
-      args:
-        removes: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
 
     - name: Add RabbitMQ APT repository
       apt_repository:
