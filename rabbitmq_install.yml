@@ -91,7 +91,7 @@
       # Install the RabbitMQ server package
 
     - name: Get Erlang version
-      command: erl -eval 'erlang:system_info(version).' -s init stop -s init stop
+      shell: erl -eval 'erlang:system_info(version).' -s init stop -s init stop
       register: erlang_version
       changed_when: false
       # Retrieve the version of Erlang installed
@@ -102,7 +102,7 @@
       # Display the Erlang version
 
     - name: Get RabbitMQ version
-      command: rabbitmqctl status | grep 'rabbit' | awk -F: '{print $2}' | awk '{print $1}'
+      shell: rabbitmqctl status | grep 'rabbit' | awk -F: '{print $2}' | awk '{print $1}'
       register: rabbitmq_version
       changed_when: false
       # Retrieve the version of RabbitMQ installed
