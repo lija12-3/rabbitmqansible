@@ -11,28 +11,28 @@
           - apt-transport-https
         state: present
         update_cache: yes
-      # Install curl, gnupg, and apt-transport-https which are required for adding repositories and signing keys.
+      # This task installs the necessary packages (curl, gnupg, apt-transport-https) required for adding repositories and handling GPG keys.
 
     - name: Add Team RabbitMQ's main signing key
       shell: |
         curl -sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | gpg --dearmor | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
       args:
         creates: /usr/share/keyrings/com.rabbitmq.team.gpg
-      # Download and add the Team RabbitMQ signing key to the system keyring. This key is used to verify the RabbitMQ packages.
+      # Downloads and adds the Team RabbitMQ signing key to the system keyring, which is necessary for verifying RabbitMQ packages.
 
     - name: Add Cloudsmith Erlang repository key
       shell: |
         curl -sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
       args:
         creates: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
-      # Download and add the Cloudsmith Erlang repository key to the system keyring. This key is used to verify Erlang packages.
+      # Downloads and adds the Cloudsmith Erlang repository GPG key, which is used to verify Erlang packages.
 
     - name: Add Cloudsmith RabbitMQ repository key
       shell: |
         curl -sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
       args:
         creates: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
-      # Download and add the Cloudsmith RabbitMQ repository key to the system keyring. This key is used to verify RabbitMQ server packages.
+      # Downloads and adds the Cloudsmith RabbitMQ repository GPG key, which is used to verify RabbitMQ server packages.
 
     - name: Add RabbitMQ APT repositories
       copy:
@@ -53,12 +53,12 @@
           # another mirror for redundancy
           deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
           deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-      # Add the RabbitMQ APT repositories to the system sources list to install RabbitMQ and Erlang packages.
+      # This task adds the RabbitMQ and Erlang APT repositories to the system sources list to allow installation of RabbitMQ and its dependencies.
 
     - name: Update APT cache
       apt:
         update_cache: yes
-      # Update the APT package index to include the newly added repositories.
+      # This task updates the APT package index to include the newly added RabbitMQ and Erlang repositories.
 
     - name: Install Erlang packages
       apt:
@@ -81,35 +81,35 @@
           - erlang-tools
           - erlang-xmerl
         state: present
-      # Install the Erlang packages required for RabbitMQ to run.
+      # This task installs the required Erlang packages for RabbitMQ to operate properly.
 
     - name: Install RabbitMQ server
       apt:
         name: rabbitmq-server
         state: present
         install_recommends: yes
-      # Install RabbitMQ server and any recommended packages.
+      # This task installs the RabbitMQ server along with any recommended packages to ensure all necessary dependencies are installed.
 
     - name: Get Erlang version
       shell: |
         erl -eval 'erlang:system_info(version).' -s init stop -s init stop
       register: erlang_version
       changed_when: false
-      # Retrieve and print the installed Erlang version using the 'erl' command.
+      # This task retrieves the installed Erlang version using the 'erl' command and stores it in the 'erlang_version' variable.
 
     - name: Print Erlang version
       debug:
         msg: "Erlang version: {{ erlang_version.stdout }}"
-      # Output the Erlang version to the Ansible playbook logs.
+      # This task outputs the installed Erlang version to the Ansible playbook logs.
 
     - name: Get RabbitMQ version
       shell: |
         rabbitmqctl version
       register: rabbitmq_version
       changed_when: false
-      # Retrieve and print the installed RabbitMQ version using the 'rabbitmqctl version' command.
+      # This task retrieves the installed RabbitMQ version using the 'rabbitmqctl version' command and stores it in the 'rabbitmq_version' variable.
 
     - name: Print RabbitMQ version
       debug:
         msg: "RabbitMQ version: {{ rabbitmq_version.stdout }}"
-      # Output the RabbitMQ version to the Ansible playbook logs.
+      # This task outputs the installed RabbitMQ version to the Ansible playbook logs.
