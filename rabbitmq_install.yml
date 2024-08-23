@@ -93,7 +93,8 @@
         msg: "Erlang version: {{ erlang_version.stdout }}"
 
     - name: Get RabbitMQ version
-      command: rabbitmqctl status | grep '{rabbit,' | awk -F', ' '{print $2}' | awk -F')' '{print $1}'
+      shell: |
+        rabbitmqctl status | grep '{rabbit,' | awk -F', ' '{print $2}' | awk -F')' '{print $1}'
       register: rabbitmq_version
       changed_when: false
 
