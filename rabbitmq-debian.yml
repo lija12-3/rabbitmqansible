@@ -12,63 +12,65 @@
           - apt-transport-https
         state: present
         update_cache: yes
+      # Install necessary dependencies for adding new repositories and installing packages
+
+    - name: Add RabbitMQ GPG key
+      command: "curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc | sudo gpg --dearmor -o /usr/share/keyrings/com.rabbitmq.team.gpg"
+      # Adds the RabbitMQ GPG key for verifying packages
 
     - name: Update apt cache
       apt:
         update_cache: yes
-
-    - name: Add RabbitMQ repository signing key
-      apt_key:
-        url: https://packages.rabbitmq.com/rabbitmq-release-signing-key.asc
-        state: present
-
-    - name: Add RabbitMQ repository
-      apt_repository:
-        repo: "deb https://dl.bintray.com/rabbitmq-erlang/debian bionic erlang"
-        state: present
-
-    - name: Add official RabbitMQ repository
-      apt_repository:
-        repo: "deb https://dl.bintray.com/rabbitmq/debian bionic main"
-        state: present
+      # Update the APT package cache to ensure we get the latest package lists
 
     - name: Install Erlang
       apt:
-        name: erlang
+        name:
+          - erlang
+          - erlang-nox
         state: present
+      # Install Erlang and its minimal graphical components for RabbitMQ
 
     - name: Check Erlang version
       command: "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell"
       register: erl_version
+      # Retrieve and register the version of Erlang installed
 
     - name: Display Erlang version
       debug:
         msg: "Erlang version: {{ erl_version.stdout }}"
+      # Display the Erlang version for verification purposes
 
     - name: Install RabbitMQ server
       apt:
         name: rabbitmq-server
         state: present
+      # Install RabbitMQ server
 
     - name: Start RabbitMQ server
       systemd:
         name: rabbitmq-server
         state: started
         enabled: yes
+      # Ensure the RabbitMQ service is started and enabled to start on boot
 
     - name: Check RabbitMQ server status
       command: systemctl status rabbitmq-server
       register: rabbitmq_status
+      # Check and register the status of the RabbitMQ server
 
     - name: Display RabbitMQ server status
       debug:
         msg: "RabbitMQ status: {{ rabbitmq_status.stdout }}"
+      # Display the RabbitMQ server status for verification purposes
 
     - name: Get RabbitMQ version
       command: rabbitmqctl version
       register: rabbitmq_version_output
       changed_when: False
+      # Retrieve and register the version of RabbitMQ installed
 
     - name: Display RabbitMQ version
       debug:
         msg: "RabbitMQ version: {{ rabbitmq_version_output.stdout }}"
+      # Display the RabbitMQ version for verification purposes
