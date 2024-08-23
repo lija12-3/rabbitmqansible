@@ -97,7 +97,8 @@
         rabbitmqctl status | grep '{rabbit,' | awk -F', ' '{print $2}' | awk -F')' '{print $1}'
       register: rabbitmq_version
       changed_when: false
+      ignore_errors: yes
 
     - name: Print RabbitMQ version
       debug:
-        msg: "RabbitMQ version: {{ rabbitmq_version.stdout }}"
+        msg: "RabbitMQ version: {{ rabbitmq_version.stdout | default('RabbitMQ version not found') }}"
