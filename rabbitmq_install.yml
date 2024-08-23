@@ -2,60 +2,62 @@
 - name: Install RabbitMQ on Debian 12
   hosts: all
   become: yes
-
   tasks:
-    - name: Update apt repository cache
-      apt:
-        update_cache: yes
-
-    - name: Install necessary packages
+    - name: Install required packages
       apt:
         name:
           - curl
           - gnupg
           - apt-transport-https
         state: present
+        update_cache: yes
 
-    - name: Remove old RabbitMQ repository keyrings if they exist
-      file:
-        path: "/usr/share/keyrings/{{ item }}"
-        state: absent
-      with_items:
-        - rabbitmq-team-archive-keyring.gpg
-        - rabbitmq-erlang-archive-keyring.gpg
-        - rabbitmq-server-archive-keyring.gpg
+    - name: Add Team RabbitMQ's main signing key
+      shell: |
+        curl -sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | gpg --dearmor | tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
+      args:
+        creates: /usr/share/keyrings/com.rabbitmq.team.gpg
+      failed_when: "'NO_PUBKEY' in result.stdout"
 
-    - name: Add RabbitMQ's main signing key
-      apt_key:
-        url: "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA"
-        state: present
+    - name: Add Cloudsmith Erlang repository key
+      shell: |
+        curl -sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
+      args:
+        creates: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
+      failed_when: "'NO_PUBKEY' in result.stdout"
 
-    - name: Add Erlang repository signing key
-      apt_key:
-        url: "https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key"
-        state: present
+    - name: Add Cloudsmith RabbitMQ repository key
+      shell: |
+        curl -sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | gpg --dearmor | tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
+      args:
+        creates: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
+      failed_when: "'NO_PUBKEY' in result.stdout"
 
-    - name: Add RabbitMQ repository signing key
-      apt_key:
-        url: "https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key"
-        state: present
-
-    - name: Ensure the RabbitMQ repository file exists
+    - name: Add RabbitMQ APT repositories
       copy:
-        content: |
-          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq-erlang-archive-keyring.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-          deb-src [signed-by=/usr/share/keyrings/rabbitmq-erlang-archive-keyring.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
-          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq-server-archive-keyring.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
-          deb-src [signed-by=/usr/share/keyrings/rabbitmq-server-archive-keyring.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
         dest: /etc/apt/sources.list.d/rabbitmq.list
-        mode: '0644'
+        content: |
+          ## Provides modern Erlang/OTP releases
+          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
+          deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
 
-    - name: Update apt cache after adding repositories
+          # another mirror for redundancy
+          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
+          deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main
+
+          ## Provides RabbitMQ
+          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
+          deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
+
+          # another mirror for redundancy
+          deb [arch=amd64 signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
+          deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian bookworm main
+
+    - name: Update APT cache
       apt:
         update_cache: yes
-        cache_valid_time: 3600
 
-    - name: Install Erlang and RabbitMQ
+    - name: Install Erlang packages
       apt:
         name:
           - erlang-base
@@ -75,6 +77,30 @@
           - erlang-tftp
           - erlang-tools
           - erlang-xmerl
-          - rabbitmq-server
         state: present
-        update_cache: yes
+
+    - name: Install RabbitMQ server
+      apt:
+        name: rabbitmq-server
+        state: present
+        install_recommends: yes
+
+    - name: Get Erlang version
+      shell: |
+        erl -eval 'erlang:system_info(version).' -s init stop -s init stop
+      register: erlang_version
+      changed_when: false
+
+    - name: Print Erlang version
+      debug:
+        msg: "Erlang version: {{ erlang_version.stdout }}"
+
+    - name: Get RabbitMQ version
+      shell: |
+        rabbitmqctl version
+      register: rabbitmq_version
+      changed_when: false
+
+    - name: Print RabbitMQ version
+      debug:
+        msg: "RabbitMQ version: {{ rabbitmq_version.stdout }}"
