@@ -1,47 +1,63 @@
 ---
-- name: Remove Erlang and RabbitMQ from Debian
+- name: Remove RabbitMQ and Erlang from Debian 12
   hosts: all
   become: yes
-
   tasks:
-    - name: Stop RabbitMQ server
-      systemd:
-        name: rabbitmq-server
-        state: stopped
-        enabled: no
-      # Stop RabbitMQ service and disable it from starting on boot
-
     - name: Remove RabbitMQ server
       apt:
         name: rabbitmq-server
         state: absent
-      # Uninstall RabbitMQ server
+      # Remove the RabbitMQ server package
 
-    - name: Remove Erlang
+    - name: Remove Erlang packages
       apt:
         name:
-          - erlang
-          - erlang-nox
+          - erlang-base
+          - erlang-asn1
+          - erlang-crypto
+          - erlang-eldap
+          - erlang-ftp
+          - erlang-inets
+          - erlang-mnesia
+          - erlang-os-mon
+          - erlang-parsetools
+          - erlang-public-key
+          - erlang-runtime-tools
+          - erlang-snmp
+          - erlang-ssl
+          - erlang-syntax-tools
+          - erlang-tftp
+          - erlang-tools
+          - erlang-xmerl
         state: absent
-      # Uninstall Erlang and its minimal graphical components
+      # Remove the Erlang packages
 
-    - name: Remove dependencies
-      apt:
-        name:
-          - software-properties-common
-          - curl
-          - gnupg2
-          - apt-transport-https
+    - name: Remove RabbitMQ APT repository files
+      file:
+        path: "/etc/apt/sources.list.d/rabbitmq.list"
         state: absent
-        autoremove: yes
-      # Uninstall dependencies and autoremove any unused packages
+      # Remove the RabbitMQ APT sources list file
 
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-      # Update the APT package cache to reflect the removal of packages
+    - name: Remove RabbitMQ GPG keys
+      file:
+        path: "/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg"
+        state: absent
+      # Remove the Cloudsmith Erlang repository GPG key
 
-    - name: Clean up residual configuration files
+    - name: Remove RabbitMQ GPG keys
+      file:
+        path: "/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg"
+        state: absent
+      # Remove the RabbitMQ server repository GPG key
+
+    - name: Remove RabbitMQ GPG key
+      file:
+        path: "/usr/share/keyrings/com.rabbitmq.team.gpg"
+        state: absent
+      # Remove the Team RabbitMQ's main signing key
+
+    - name: Clean up APT cache
       apt:
         autoclean: yes
-      # Clean up residual configuration files and package cache
+        autoremove: yes
+      # Clean up the APT package cache and remove unused packages
