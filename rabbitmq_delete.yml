@@ -7,57 +7,44 @@
       systemd:
         name: rabbitmq-server
         state: stopped
-      # Stop the RabbitMQ service before removal
+        enabled: no
+      # Stop and disable the RabbitMQ service
 
-    - name: Remove RabbitMQ server
+    - name: Remove RabbitMQ server package
       apt:
         name: rabbitmq-server
         state: absent
       # Remove RabbitMQ server package
 
-    - name: Remove Erlang
+    - name: Remove Erlang packages
       apt:
         name:
           - erlang
           - erlang-nox
         state: absent
-      # Remove Erlang packages
+      # Remove Erlang and its minimal graphical components
 
-    - name: Remove RabbitMQ APT repository file
-      file:
-        path: /etc/apt/sources.list.d/rabbitmq.list
-        state: absent
-      # Remove the RabbitMQ APT repository configuration file
+    - name: Remove RabbitMQ APT repository
+      block:
+        - name: Remove RabbitMQ APT repository file
+          file:
+            path: /etc/apt/sources.list.d/rabbitmq.list
+            state: absent
+          # Remove the RabbitMQ APT repository file
 
-    - name: Remove RabbitMQ GPG key
-      file:
-        path: /usr/share/keyrings/com.rabbitmq.team.gpg
-        state: absent
-      # Remove the RabbitMQ GPG key file
+        - name: Remove RabbitMQ GPG key
+          file:
+            path: /usr/share/keyrings/com.rabbitmq.team.gpg
+            state: absent
+          # Remove the RabbitMQ GPG key file
 
     - name: Update apt cache
       apt:
         update_cache: yes
-      # Update the APT package cache to reflect the removal of the repositories
+      # Update the APT package cache to reflect the removal
 
-    - name: Verify RabbitMQ removal
-      command: dpkg -l | grep rabbitmq
-      register: rabbitmq_check
-      ignore_errors: yes
-      # Check if RabbitMQ is still installed
-
-    - name: Display RabbitMQ removal status
-      debug:
-        msg: "RabbitMQ removal status: {{ rabbitmq_check.stdout }}"
-      # Display status to verify if RabbitMQ was successfully removed
-
-    - name: Verify Erlang removal
-      command: dpkg -l | grep erlang
-      register: erlang_check
-      ignore_errors: yes
-      # Check if Erlang is still installed
-
-    - name: Display Erlang removal status
-      debug:
-        msg: "Erlang removal status: {{ erlang_check.stdout }}"
-      # Display status to verify if Erlang was successfully removed
+    - name: Clean up any unused packages
+      apt:
+        autoclean: yes
+        autoremove: yes
+      # Remove unnecessary packages and clean up
