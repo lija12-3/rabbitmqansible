@@ -1,73 +1,96 @@
 ---
-- name: Install Erlang and RabbitMQ on Debian
-  hosts: debian_servers
+- name: Install and Verify RabbitMQ
+  hosts: all
   become: yes
-
   tasks:
-    - name: Install dependencies
+    - name: Install required packages
       apt:
         name:
-          - software-properties-common
           - curl
-          - gnupg2
+          - gnupg
           - apt-transport-https
         state: present
         update_cache: yes
-      # Install necessary dependencies for adding new repositories and installing packages
 
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-      # Update the APT package cache to ensure we get the latest package lists
+    - name: Add RabbitMQ Team signing key
+      get_url:
+        url: "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA"
+        dest: /tmp/rabbitmq-team-key.asc
+      register: rabbitmq_team_key
 
-    - name: Install Erlang
-      apt:
-        name:
-          - erlang
-          - erlang-nox
+    - name: Import RabbitMQ Team signing key
+      command: "gpg --dearmor /tmp/rabbitmq-team-key.asc"
+      args:
+        creates: /usr/share/keyrings/com.rabbitmq.team.gpg
+
+    - name: Move RabbitMQ Team key to keyrings
+      command: "mv /tmp/rabbitmq-team-key.asc.gpg /usr/share/keyrings/com.rabbitmq.team.gpg"
+      args:
+        removes: /usr/share/keyrings/com.rabbitmq.team.gpg
+
+    - name: Add Cloudsmith Erlang repository key
+      get_url:
+        url: "https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key"
+        dest: /tmp/rabbitmq-erlang-key.asc
+      register: rabbitmq_erlang_key
+
+    - name: Import Erlang repository key
+      command: "gpg --dearmor /tmp/rabbitmq-erlang-key.asc"
+      args:
+        creates: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
+
+    - name: Move Erlang key to keyrings
+      command: "mv /tmp/rabbitmq-erlang-key.asc.gpg /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg"
+      args:
+        removes: /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg
+
+    - name: Add RabbitMQ repository key
+      get_url:
+        url: "https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key"
+        dest: /tmp/rabbitmq-server-key.asc
+      register: rabbitmq_server_key
+
+    - name: Import RabbitMQ repository key
+      command: "gpg --dearmor /tmp/rabbitmq-server-key.asc"
+      args:
+        creates: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
+
+    - name: Move RabbitMQ key to keyrings
+      command: "mv /tmp/rabbitmq-server-key.asc.gpg /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg"
+      args:
+        removes: /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg
+
+    - name: Add RabbitMQ APT repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/ buster main"
         state: present
-      # Install Erlang and its minimal graphical components for RabbitMQ
 
-    - name: Check Erlang version
-      command: "erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -noshell"
-      register: erl_version
-      # Retrieve and register the version of Erlang installed
-
-    - name: Display Erlang version
-      debug:
-        msg: "Erlang version: {{ erl_version.stdout }}"
-      # Display the Erlang version for verification purposes
-
-    - name: Install RabbitMQ server
+    - name: Install RabbitMQ
       apt:
         name: rabbitmq-server
         state: present
-      # Install RabbitMQ server
+        update_cache: yes
 
-    - name: Start RabbitMQ server
-      systemd:
+    - name: Ensure RabbitMQ service is started
+      service:
         name: rabbitmq-server
         state: started
         enabled: yes
-      # Ensure the RabbitMQ service is started and enabled to start on boot
 
-    - name: Check RabbitMQ server status
-      command: systemctl status rabbitmq-server
-      register: rabbitmq_status
-      # Check and register the status of the RabbitMQ server
+    - name: Get Erlang version
+      command: erl -eval 'erlang:display(erlang:system_info(otp_release)), halt().' -sname check_version
+      register: erlang_version
+      changed_when: false
 
-    - name: Display RabbitMQ server status
+    - name: Print Erlang version
       debug:
-        msg: "RabbitMQ status: {{ rabbitmq_status.stdout }}"
-      # Display the RabbitMQ server status for verification purposes
+        msg: "Erlang version: {{ erlang_version.stdout }}"
 
     - name: Get RabbitMQ version
-      command: rabbitmqctl version
-      register: rabbitmq_version_output
-      changed_when: False
-      # Retrieve and register the version of RabbitMQ installed
+      command: rabbitmqctl status | grep -i version
+      register: rabbitmq_version
+      changed_when: false
 
-    - name: Display RabbitMQ version
+    - name: Print RabbitMQ version
       debug:
-        msg: "RabbitMQ version: {{ rabbitmq_version_output.stdout }}"
-      # Display the RabbitMQ version for verification purposes
+        msg: "RabbitMQ version: {{ rabbitmq_version.stdout }}"
