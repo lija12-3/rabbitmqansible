@@ -1,4 +1,4 @@
-- name: Remove Erlang and RabbitMQ from Debian
+- name: Remove Erlang and RabbitMQ on Debian
   hosts: debian_servers
   become: yes
 
@@ -7,13 +7,8 @@
       systemd:
         name: rabbitmq-server
         state: stopped
-      # Stops the RabbitMQ service
-
-    - name: Disable RabbitMQ server from starting on boot
-      systemd:
-        name: rabbitmq-server
         enabled: no
-      # Disables RabbitMQ from starting automatically on system boot
+      # Stops the RabbitMQ service and disables it from starting on boot
 
     - name: Uninstall RabbitMQ server
       apt:
@@ -28,6 +23,22 @@
           - erlang-nox
         state: absent
       # Removes Erlang and associated packages
+
+    - name: Remove RabbitMQ GPG keyring file
+      file:
+        path: /usr/share/keyrings/com.rabbitmq.team.gpg
+        state: absent
+      # Removes the RabbitMQ GPG keyring file
+
+    - name: Remove dependencies
+      apt:
+        name:
+          - software-properties-common
+          - curl
+          - gnupg2
+          - apt-transport-https
+        state: absent
+      # Removes dependencies that were installed
 
     - name: Remove RabbitMQ repository
       apt_repository:
@@ -46,17 +57,6 @@
         url: https://packages.rabbitmq.com/rabbitmq-release-signing-key.asc
         state: absent
       # Removes the RabbitMQ repository signing key
-
-    - name: Purge dependencies
-      apt:
-        name: "{{ item }}"
-        state: absent
-      with_items:
-        - software-properties-common
-        - curl
-        - gnupg2
-        - apt-transport-https
-      # Purges dependencies that were installed
 
     - name: Update apt cache after removal
       apt:
